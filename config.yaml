@@ -6,3 +6,4 @@ patch_directory:
 sram_directory:
  - srams
 settings_directory: naomi/settings/definitions/
+wipi_config: wipi.yaml

@@ -9,7 +9,7 @@ from flask import Flask, Response, request, render_template, make_response, json
 from werkzeug.routing import PathConverter
 from netdimm import NetDimm, NetDimmVersionEnum, NetDimmTargetEnum
 from naomi import NaomiRomRegionEnum
-from netboot import Cabinet, CabinetRegionEnum, CabinetPowerStateEnum, CabinetManager, DirectoryManager, PatchManager, SRAMManager, SettingsManager
+from netboot import Cabinet, CabinetRegionEnum, CabinetPowerStateEnum, CabinetManager, DirectoryManager, PatchManager, SRAMManager, SettingsManager, WiPi
 from smartoutlet import ALL_OUTLET_CLASSES
 
 
@@ -865,18 +865,28 @@ def spawn_app(config_file: str, debug: bool = False) -> Flask:
         if not os.path.isdir(patch):
             raise AppException(f"Invalid YAML file format for {config_file}, {patch} is not a directory!")
 
+    if 'wipi_config' not in data:
+        raise AppException(f"Invalid YAML file format for {config_file}, missing wipi config file setting!")
+    wipi_file = data['wipi_config']
+    if not os.path.isfile(wipi_file):
+        # Assume they want to create a new empty one.
+        with open(wipi_file, "w") as fp:
+            fp.write("")
+
     if 'filenames' in data and isinstance(data, dict):
         checksums = data['filenames']
     else:
         checksums = {}
 
     app.config['CabinetManager'] = CabinetManager.from_yaml(cabinet_file)
+    app.config['WiPi'] = WiPi.from_yaml(wipi_file)
     app.config['DirectoryManager'] = DirectoryManager(directories, checksums)
     app.config['PatchManager'] = PatchManager(patches)
     app.config['SRAMManager'] = SRAMManager(srams)
     app.config['SettingsManager'] = SettingsManager(os.path.abspath(naomi_settings))
     app.config['config_file'] = os.path.abspath(config_file)
     app.config['cabinet_file'] = cabinet_file
+    app.config['wipi_file'] = wipi_file
 
     return app
 
@@ -884,6 +894,7 @@ def spawn_app(config_file: str, debug: bool = False) -> Flask:
 def serialize_app(app: Flask) -> None:
     config = {
         'cabinet_config': app.config['cabinet_file'],
+        'wipi_config': app.config['wipi_file'],
         'rom_directory': app.config['DirectoryManager'].directories,
         'patch_directory': app.config['PatchManager'].directories,
         'sram_directory': app.config['SRAMManager'].directories,
@@ -895,4 +906,6 @@ def serialize_app(app: Flask) -> None:
 
     config_dir = os.path.abspath(os.path.dirname(app.config['config_file']))
     cabinet_file = os.path.join(config_dir, app.config['cabinet_file'])
+    wipi_file = os.path.join(config_dir, app.config['wipi_file'])
     app.config['CabinetManager'].to_yaml(cabinet_file)
+    app.config['WiPi'].to_yaml(wipi_file)

@@ -4,6 +4,7 @@ from netboot.directory import DirectoryManager
 from netboot.patch import PatchManager
 from netboot.sram import SRAMManager
 from netboot.settings import SettingsManager
+from netboot.wipi import WiPi
 
 __all__ = [
     "SettingsEnum",
@@ -19,4 +20,5 @@ __all__ = [
     "PatchManager",
     "SRAMManager",
     "SettingsManager",
+    "WiPi",
 ]
