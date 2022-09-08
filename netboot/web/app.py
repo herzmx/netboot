@@ -4,6 +4,8 @@ import yaml
 import traceback
 from functools import wraps
 from typing import Callable, Dict, List, Any, Optional, cast
+import csv
+import string
 
 from flask import Flask, Response, request, render_template, make_response, jsonify as flask_jsonify
 from werkzeug.routing import PathConverter
@@ -106,6 +108,85 @@ def home() -> Response:
             ),
         ),
         200,
+    )
+
+
+@app.route('/gamelist')
+def gamelist() -> Response:
+    dirman = app.config['DirectoryManager']
+    roms: List[Dict[str, Any]] = []
+    for directory in dirman.directories:
+        roms.append({'name': directory, 'files': sorted(dirman.games(directory))})
+    config_dir = os.path.abspath(os.path.dirname(app.config['config_file']))
+    romsinfo_file = os.path.join(config_dir, 'csv/romsinfo.csv')
+    dimss_file = os.path.join(config_dir, 'csv/dimms.csv')
+    rominfo = []
+    with open(romsinfo_file) as csvfile:
+        spamreader = csv.DictReader(csvfile, delimiter=',', quotechar='"')
+        for row in spamreader:
+            row['alpha_key'] = row['description'][:1].upper()
+            rominfo.append(row)
+            # print(row)
+    wipi = app.config['WiPi']
+    systems = sorted(set(i['system'] for i in rominfo))
+    genres = sorted(set(i['genre'] for i in rominfo))
+    orientations = sorted(set(i['orientation'] for i in rominfo))
+    controls = sorted(set(i['controls'] for i in rominfo))
+    available_roms = []
+    for directory in roms:
+        available_roms.extend(i for i in rominfo if i['romname'] in directory['files'] and i['enabled'] == 'Yes')
+    # available_roms = set(available_roms)
+
+    display_roms = available_roms
+    display_roms_anchors = []
+    for rom in display_roms:
+        if rom['alpha_key'] not in display_roms_anchors:
+            display_roms_anchors.append(rom['alpha_key'])
+            rom['anchor'] = True
+
+    if request.args.get('filter'):
+        display_roms = [i for i in available_roms if i[request.args.get('filter')] == request.args.get('value')]
+    if request.args.get('display') == 'faves':
+        display_roms = [i for i in available_roms if i['favourite'] == 'Yes']
+    if request.args.get('filename'):
+        display_roms = [i for i in available_roms if i['romname'] == request.args.get('filename')]
+
+    available_keys = sorted(set(i['alpha_key'] for i in display_roms))
+
+    naomi_available = False
+    if wipi.osmmode == 'osmon':
+        with open(dimss_file) as csvfile:
+            spamreader = csv.DictReader(csvfile, delimiter=',', quotechar='"')
+            for row in spamreader:
+                print(row['type'])
+                if 'Sega Naomi' == row['type']:
+                    naomi_available = True
+                    break
+    data = {
+        'args': {
+            'display': request.args.get('display'),
+            'filter': request.args.get('filter'),
+            'value': request.args.get('value'),
+            'filename': request.args.get('filename'),
+        },
+        'wipi': wipi,
+        'alphalist': list(string.ascii_uppercase),
+        'naomi_available': naomi_available,
+        'rominfo': {
+            'systems': systems,
+            'genres': genres,
+            'orientations': orientations,
+            'controls': controls,
+            'available_keys': available_keys,
+            'display_roms': display_roms,
+        }
+    }
+    return make_response(
+        render_template(
+            'gamelist.html',
+            **data
+        ),
+        200
     )
 
 

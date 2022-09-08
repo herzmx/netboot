@@ -1,0 +1,174 @@
+{% extends 'base.html' %}
+{% block title %}WiPi Netbooter{% endblock %}
+{% block head %}
+    <script>
+    function SystemFunction() {
+      document.getElementById("SystemDropdown").classList.toggle("show");
+      document.getElementById("GenreDropdown").classList.remove("show");
+      document.getElementById("OrientationDropdown").classList.remove("show");
+      document.getElementById("ControlDropdown").classList.remove("show");
+    }
+
+    function GenreFunction() {
+      document.getElementById("SystemDropdown").classList.remove("show");
+      document.getElementById("GenreDropdown").classList.toggle("show");
+      document.getElementById("OrientationDropdown").classList.remove("show");
+      document.getElementById("ControlDropdown").classList.remove("show");
+
+    }
+
+    function OrientationFunction() {
+      document.getElementById("SystemDropdown").classList.remove("show");
+      document.getElementById("GenreDropdown").classList.remove("show");
+      document.getElementById("OrientationDropdown").classList.toggle("show");
+      document.getElementById("ControlDropdown").classList.remove("show");
+
+    }
+
+    function ControlFunction() {
+      document.getElementById("SystemDropdown").classList.remove("show");
+      document.getElementById("GenreDropdown").classList.remove("show");
+      document.getElementById("OrientationDropdown").classList.remove("show");
+      document.getElementById("ControlDropdown").classList.toggle("show");
+
+    }
+
+    rtnbutton = document.getElementById("rtnBtn");
+    window.onscroll = function() {scrollFunction()};
+
+    function scrollFunction() {
+      if (document.body.scrollTop > 350 || document.documentElement.scrollTop > 350) {
+        rtnbutton.style.display = "block";
+      } else {
+        rtnbutton.style.display = "none";
+      }
+    }
+
+    function topFunction() {
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
+    }
+
+    </script>
+{% endblock %}
+{% block content %}
+    <section><center>
+{% if wipi.navmode == "navon" %}
+    <button onclick="topFunction()" id="rtnBtn" title="Go to top"><img src="{{ url_for('static', filename='img/rtn.png') }}" /></button>
+{% endif %}
+{% if wipi.servermode == "serveron" %}
+    <a href="dimms"><img src="{{ url_for('static', filename='img/servermode.png') }}"></a></br></br>
+    <b><a href="dimms">Server Mode Enabled</a></b><br></div><br>
+{% endif %}
+{% if ( args.display in ('all', 'faves') or args.filter in ('system', 'genre', 'orientation', 'controls') ) and not args.filename %}
+    {% if args.display == 'all' %}
+    <div class="dropdown">
+        <button onclick="SystemFunction()" class="dropbtn">System</button>
+        <div id="SystemDropdown" class="dropdown-content">
+            {% for system in rominfo.systems %}
+                <a href="/gamelist?filter=system&value={{ system }}">{{ system }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="dropdown">
+        <button onclick="GenreFunction()" class="dropbtn">Genre</button>
+        <div id="GenreDropdown" class="dropdown-content">
+            {% for genre in rominfo.genres %}
+                <a href="/gamelist?filter=genre&value={{ genre }}">{{ genre }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="dropdown">
+        <button onclick="OrientationFunction()" class="dropbtn">Orientation</button>
+        <div id="OrientationDropdown" class="dropdown-content">
+            {% for orientation in rominfo.orientations %}
+                <a href="/gamelist?filter=orientation&value={{ orientation }}">{{ orientation }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="dropdown">
+        <button onclick="ControlFunction()" class="dropbtn">Controls</button>
+        <div id="ControlDropdown" class="dropdown-content">
+            {% for control in rominfo.controls %}
+                <a href="/gamelist?filter=controls&value={{ control }}">{{ control }}</a>
+            {% endfor %}
+        </div>
+    </div>
+    <br><br>
+    {% elif args.display == 'faves'%}
+        <div><a href="gamelist?display=all"></div><h1>Favourite Games</h1></a></div><br>
+    {% endif %}
+    {% if args.filter == 'system' %}
+        <a href="gamelist?display=all"><img src="{{ url_for('static', filename='img/%s.png' % args.value) }}"></a><br><br>
+    {% elif args.filter == 'genre' %}
+        <div><a href="gamelist?display=all"></div><h1>{{ args.value }} Games</h1></a></h1></div><br>
+    {% elif args.filter == 'orientation' %}
+        <div><a href="gamelist?display=all"></div><h1>{{ args.value }} Games</h1></a></div><br>
+    {% elif args.filter == 'controls' %}
+        <div><a href="gamelist?display=all"></div><h1>Games with {{ args.value }} {{ args.filter }}</h1></a></div><br>
+    {% endif %}
+    <ul>
+        {% for letter in alphalist %}
+            {% if letter in rominfo.available_keys %}
+                <li><a href="#anchor{{ letter }}" class="scrollLink">{{ letter }}</a></li>
+            {% else %}
+                <li>{{ letter }}</li>
+            {% endif %}
+        {% endfor %}
+    </ul>
+    <br><br>
+    <a id="anchorTOP" class="anchors"></a>
+    {% if naomi_available %}
+        <div class="box1">
+                <a href="menulauncher?openmode={{ wipi.openmode }}"><img src="{{ url_for('static', filename='img/menu.png') }}"></a></br></br>
+            <b><a href="menulauncher?openmode={{ wipi.openmode }}">On Screen Menu</a></b>
+            <br/>
+            <br/>
+        </div>
+        <br/>
+    {% endif %}
+    {% for rom in rominfo.display_roms %}
+        <div class="box1">
+            {% if rom.anchor %}
+                <a id="anchor{{ rom.alpha_key }}" class="anchors"></a>
+            {% endif %}
+            <a id="anchor{{ rom.description }}" class="anchors"></a>
+            {% if wipi.menumode == "advanced" %}
+                <a href="gamelist?filename={{ rom.romname }}{% if args.filter %}&filter={{ args.filter }}&value={{ args.value }}{% endif %}{% if args.display == 'faves' %}&display=faves{% endif %}"><img src="{{ url_for('static', filename='images/'+rom.image) }}"></a></br></br>
+                <div class="parent"><b><a href="gamelist?filename={{ rom.romname }}{% if args.filter %}&filter={{ args.filter }}&value={{ args.value }}{% endif %}{% if args.display == 'faves' %}&display=faves{% endif %}">{{ rom.description }}</a></b>{% if rom.favourite == 'Yes' %}<img src="{{ url_for('static', filename='img/fave.png') }}" class="over-img"/>{% endif %}</div>
+            {% else %}
+                <a href="loadcheck?rom={{ rom.romname }}&name={{ rom.description }}&system={{ rom.system }}&mapping={{ rom.openjvs }}&ffb={{ rom.openffb }}{% if args.filter %}&filter={{ args.filter }}&value={{ args.value }}{% endif %}{% if args.display == 'faves' %}&display=faves{% endif %}"><img src="{{ url_for('static', filename='images/'+rom.image) }}"></a></br></br>
+                <div class="parent"><b><a href="loadcheck?rom={{ rom.romname }}&name={{ rom.description }}&system={{ rom.system }}&mapping={{ rom.openjvs }}&ffb={{ rom.openffb }}{% if args.filter %}&filter={{ args.filter }}&value={{ args.value }}{% endif %}">{{ rom.description }}{% if args.display == 'faves' %}&display=faves{% endif %}</a></b>{% if rom.favourite == 'Yes' %}<img src="{{ url_for('static', filename='img/fave.png') }}" class="over-img"/>{% endif %}</div></br></br>
+            {% endif %}
+        </div>
+    {% endfor %}
+    {% if not  rominfo.display_roms %}
+        <div><a href="gamelist?display=all">NO GAMES FOUND</a></div>
+    {% endif %}
+{% elif args.filename %}
+    {% for rom in rominfo.display_roms %}
+        <a href="gamelist?{% if args.filter %}filter={{ args.filter }}&value={{ args.value }}{% elif args.display %}display=faves{% else %}display=all{% endif %}#anchor{{ rom.description }}"><img src="{{ url_for('static', filename='images/'+rom.image) }}"></a><br><br>
+        <h1><a href="gamelist?{% if args.filter %}filter={{ args.filter }}&value={{ args.value }}{% elif args.display %}display=faves{% else %}display=all{% endif %}#anchor{{ rom.description }}">{{ rom.description }}</a></h1>
+        <h1><form action="loadcheck?rom={{ rom.romname }}&name={{ rom.description }}&system={{ rom.system }}&mapping={{ rom.openjvs }}&ffb={{ rom.openffb }}" method="post"><input type="submit" class="bigdropbtn" value="Launch Game"></form></h1>
+        {% if rom.video %}
+            <video height=240 width=320 controls autoplay playsinline {% if wipi.soundmode == 'soundoff' %}muted{% endif %} loop id="myVideo"><source src="{{ url_for('static', filename='videos/'+rom.video) }}" type="video/mp4"></video><br><br>
+        {% endif %}
+        <table id="gameinfo" style="width:100%">
+            <tr><td><b>System</b></td><td>{{ rom.system }}</td><td><b>Manufacturer</b></td><td>{{ rom.manufacturer }}</td></tr>
+            <tr><td><b>Year</b></td><td>{{ rom.year }}</td><td><b>Genre</b></td><td>{{ rom.genre }}</td></tr>
+            <tr><td><b>Controls</b></td><td>{{ rom.controls }}</td><td><b>Orientation</b></td><td>{{ rom.orientation }}</td></tr>
+        </table><br>
+        {# TODO: Add device list #}
+        {% if args.openmode == 'openon' %}
+            <tr><td><b>Mapping</b></td><td>rom.openjvs</td><td><b>Controllers</b></td><td>TODO</td></tr>
+        {% endif %}
+        {% if rom.favourite != 'Yes' %}
+            <a href="updatecsvfave?rom={{ rom.romname }}&fave=Yes">Add to Favourites</a>
+        {% else %}
+            <a href="updatecsvfave?rom={{ rom.romname }}&fave=No">Remove from Favourites</a>
+        {% endif %}
+    {% endfor %}
+{% endif %}
+    </center>
+    </section>
+{% endblock %}
