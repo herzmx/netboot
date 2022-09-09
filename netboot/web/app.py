@@ -7,11 +7,11 @@ from typing import Callable, Dict, List, Any, Optional, cast
 import csv
 import string
 
-from flask import Flask, Response, request, render_template, make_response, jsonify as flask_jsonify
+from flask import Flask, Response, request, render_template, make_response, jsonify as flask_jsonify, redirect, url_for
 from werkzeug.routing import PathConverter
 from netdimm import NetDimm, NetDimmVersionEnum, NetDimmTargetEnum
 from naomi import NaomiRomRegionEnum
-from netboot import Cabinet, CabinetRegionEnum, CabinetPowerStateEnum, CabinetManager, DirectoryManager, PatchManager, SRAMManager, SettingsManager, WiPi
+from netboot import Cabinet, CabinetRegionEnum, CabinetPowerStateEnum, CabinetManager, DirectoryManager, PatchManager, SRAMManager, SettingsManager, WiPi, WiPiUtils
 from smartoutlet import ALL_OUTLET_CLASSES
 
 
@@ -111,7 +111,7 @@ def home() -> Response:
     )
 
 
-@app.route('/gamelist')
+@app.route('/gamelist', methods=['POST', 'GET'])
 def gamelist() -> Response:
     dirman = app.config['DirectoryManager']
     roms: List[Dict[str, Any]] = []
@@ -184,6 +184,40 @@ def gamelist() -> Response:
     return make_response(
         render_template(
             'gamelist.html',
+            **data
+        ),
+        200
+    )
+
+
+@app.route('/loadcheck', methods=['POST', 'GET'])
+def loadcheck() -> Response:
+    config_dir = os.path.abspath(os.path.dirname(app.config['config_file']))
+    dimms_file = os.path.join(config_dir, 'csv/dimms.csv')
+    availabledimms = WiPiUtils.getavailabledimms(request.args.get('system'), dimms_file)
+    if availabledimms and len(availabledimms) == 1:
+        dimm = availabledimms[0]
+        print(dimm)
+        return redirect(url_for('load',
+                                rom=request.args.get('rom'),
+                                name=request.args.get('name'),
+                                dimm=dimm['ipaddress'],
+                                mapping=request.args.get('mapping'),
+                                ffb=request.args.get('ffb'),
+                                ))
+    data = {
+        'args': {
+            'rom': request.args.get('rom'),
+            'name': request.args.get('name'),
+            'system': request.args.get('system'),
+            'mapping': request.args.get('mapping'),
+            'ffb': request.args.get('ffb'),
+        },
+        'availabledimms': availabledimms,
+    }
+    return make_response(
+        render_template(
+            'loadcheck.html',
             **data
         ),
         200

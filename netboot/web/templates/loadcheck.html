@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}WiPi Netbooter{% endblock %}
+{% block content %}
+    <section><center>
+    <div class="box2">
+    {% if not availabledimms %}
+        <p><b>No dimms available for this system</b></p>
+        <h1><form action="gamelist?display=all" method="post">
+            <input type="submit" class="bigdropbtn" value="Main Menu">
+        </form></h1>
+    {% else %}
+        <p><b>Multiple dimms found for {{ args.system }}</b></p>
+        {% for dimm in availabledimms %}
+            <h1><form action="load?rom={{ args.rom }}&name={{ args.name }}&dimm={{ dimm.ipaddress }}&mapping={{ args.mapping }}&ffb={{ args.ffb }}" method="post"><input type="submit" class="bigdropbtn" value="{{ dimm.name }}"></form></h1>
+        {% endfor %}
+    {% endif %}
+    </div>
+    </center>
+    </section>
+{% endblock %}
